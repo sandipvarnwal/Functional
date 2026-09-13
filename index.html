@@ -291,6 +291,15 @@
     var pageSize = 300;
     var currentSummaryMode = 'SUM';
 
+    // Helper to safely extract cell values (.value, .v, or raw strings)
+    function getCellValue(cell) {
+      if (cell === null || cell === undefined) return '';
+      if (cell.value !== undefined) return String(cell.value);
+      if (cell.v !== undefined) return String(cell.v);
+      if (typeof cell === 'object') return ''; // Fallback for unsupported objects
+      return String(cell);
+    }
+
     // Helper to determine if a value is numeric
     function isNumericValue(val) {
       if (val === undefined || val === null || val === '') return false;
@@ -366,7 +375,7 @@
 
       filteredRows.forEach(row => {
         const rowString = row.map(cell => {
-          let val = cell && cell.value !== undefined ? String(cell.value) : "";
+          let val = getCellValue(cell);
           val = val.replace(/"/g, '""');
           return `"${val}"`;
         }).join(",");
@@ -400,7 +409,7 @@
         const allowedValues = activeFilters[colIdx];
         if (allowedValues) {
           dataRows = dataRows.filter(row => {
-            const val = row[colIdx] ? String(row[colIdx].value || '').trim() : '';
+            const val = getCellValue(row[colIdx]).trim();
             return allowedValues.has(val);
           });
         }
@@ -410,8 +419,8 @@
         const idx = currentSort.colIndex;
         const dir = currentSort.direction;
         dataRows.sort((a, b) => {
-          let valA = a[idx] ? String(a[idx].value || '').trim() : '';
-          let valB = b[idx] ? String(b[idx].value || '').trim() : '';
+          let valA = getCellValue(a[idx]).trim();
+          let valB = getCellValue(b[idx]).trim();
           let numA = parseFloat(valA.replace(/[^0-9.-]+/g, ""));
           let numB = parseFloat(valB.replace(/[^0-9.-]+/g, ""));
 
@@ -472,11 +481,13 @@
 
           for (let r = 0; r < dataRows.length; r++) {
             const cell = dataRows[r][c];
-            if (cell && !cell.isCovered && cell.value !== undefined && String(cell.value).trim() !== '') {
+            const cellVal = getCellValue(cell).trim();
+            
+            if (cell && !cell.isCovered && cellVal !== '') {
               hasValue = true;
               nonBlankCount++;
 
-              let valStr = String(cell.value).replace(/,/g, '').trim();
+              let valStr = cellVal.replace(/,/g, '');
               let num = Number(valStr);
 
               if (isNaN(num)) {
@@ -563,7 +574,7 @@
           const td = document.createElement(isHeader ? 'th' : 'td');
           if (isHeader) td.classList.add('header-cell');
 
-          let cellVal = cell.value !== undefined ? String(cell.value) : '';
+          let cellVal = getCellValue(cell);
 
           if (cell.rowSpan && cell.rowSpan > 1) td.rowSpan = cell.rowSpan;
           if (cell.colSpan && cell.colSpan > 1) td.colSpan = cell.colSpan;
@@ -684,7 +695,7 @@
 
         for (const [otherColIdx, allowedSet] of Object.entries(activeFilters)) {
           if (parseInt(otherColIdx, 10) === colIndex) continue;
-          const cellVal = row[otherColIdx] ? String(row[otherColIdx].value || '').trim() : '';
+          const cellVal = getCellValue(row[otherColIdx]).trim();
           if (!allowedSet.has(cellVal)) {
             rowMatchesOtherFilters = false;
             break;
@@ -692,7 +703,7 @@
         }
 
         if (rowMatchesOtherFilters) {
-          uniqueVals.add(String(row[colIndex].value || '').trim());
+          uniqueVals.add(getCellValue(row[colIndex]).trim());
         }
       }
 
